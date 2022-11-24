@@ -60,7 +60,13 @@ SYCLSolver::SYCLSolver(sycl::queue &q)
 void SYCLSolver::BoundaryCondition(sycl::queue &q, int flag)
 {
 	for(int n=0; n<NumFluid; n++)
-		fluids[n]->BoundaryCondition(q, d_BCs, flag);
+		fluids[n]->BoundaryCondition(q, BCs, flag);
+}
+
+void SYCLSolver::UpdateStates(sycl::queue &q, int flag)
+{
+	for(int n=0; n<NumFluid; n++)
+		fluids[n]->UpdateFluidStates(q, flag);
 }
 
 void SYCLSolver::AllocateMemory(sycl::queue &q)

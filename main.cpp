@@ -63,6 +63,9 @@ int main()
 	syclsolver.InitialCondition(q);
 	//  boundary conditions
 	syclsolver.BoundaryCondition(q, 0);
+	// update states by U
+	syclsolver.UpdateStates(q, 0);
+
 	syclsolver.CopyDataFromDevice(q);
 	syclsolver.Output(0);
 

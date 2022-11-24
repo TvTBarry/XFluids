@@ -141,12 +141,20 @@ void FluidSYCL::InitialU(sycl::queue &q, Real dx, Real dy, Real dz)
 	// // });
 }
 
-void FluidSYCL::BoundaryCondition(sycl::queue &q, BConditions  *BCs, int flag)
+void FluidSYCL::BoundaryCondition(sycl::queue &q, BConditions BCs[6], int flag)
 {
     if (flag == 0)
         FluidBoundaryCondition(q, BCs, d_U);
     else
         FluidBoundaryCondition(q, BCs, d_U1);
+}
+
+void FluidSYCL::UpdateFluidStates(sycl::queue &q, int flag)
+{
+    if (flag == 0)
+        UpdateFluidStateFlux(q, d_U, d_fstate, d_FluxF, d_FluxG, d_FluxH, material_property.Gamma);
+    else
+        UpdateFluidStateFlux(q, d_U1, d_fstate, d_FluxF, d_FluxG, d_FluxH, material_property.Gamma);
 }
 
 void FluidSYCL::test(sycl::queue &q)

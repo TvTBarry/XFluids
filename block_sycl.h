@@ -17,4 +17,7 @@ void InitializeFluidStates(sycl::queue &q, array<int, 3> WG, array<int, 3> WI, M
                             Real const dx, Real const dy, Real const dz);
 
 
-void FluidBoundaryCondition(sycl::queue &q, BConditions  *BCs, Real*  d_UI);
+void FluidBoundaryCondition(sycl::queue &q, BConditions BCs[6], Real*  d_UI);
+
+
+void UpdateFluidStateFlux(sycl::queue &q, Real*  UI, FlowData &fdata, Real*  FluxF, Real*  FluxG, Real*  FluxH, Real const Gamma);

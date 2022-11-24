@@ -9,6 +9,56 @@
 using namespace std;
 using namespace sycl;
 
+/**
+ * @brief Obtain state at a grid point
+ */
+void GetStates(Real UI[Emax], Real &rho, Real &u, Real &v, Real &w, Real &p, Real &H, Real &c, Real const Gamma)
+{
+	rho	=	UI[0];
+	#if USE_DP
+	Real rho1 =	1.0/rho;
+	#else
+	Real rho1 =	1.0f/rho;
+	#endif
+	u	=	UI[1]*rho1;
+	v	=	UI[2]*rho1;
+	w	=	UI[3]*rho1;
+	
+	//EOS was included
+	#if USE_DP
+	p	=	(Gamma-1.0)*(UI[4] - 0.5*rho*(u*u + v*v + w*w));
+	#else
+	p	=	(Gamma-1.0f)*(UI[4] - 0.5f*rho*(u*u + v*v + w*w));
+	#endif
+	H	=	(UI[4] + p)*rho1;
+	c	=	sqrt(Gamma*p*rho1);
+}
+
+/**
+ * @brief  Obtain fluxes at a grid point
+ */
+void GetPhysFlux(Real UI[Emax], Real *FluxF, Real *FluxG, Real *FluxH, Real const rho, Real const u, Real const v, Real const w, Real const p, Real const H, Real const c)
+{
+	FluxF[0] = UI[1];
+	// *(FluxF+0) = UI[1];
+	FluxF[1] = UI[1]*u + p;
+	FluxF[2] = UI[1]*v;
+	FluxF[3] = UI[1]*w;
+	FluxF[4] = (UI[4] + p)*u;
+
+	FluxG[0] = UI[2];
+	FluxG[1] = UI[2]*u;
+	FluxG[2] = UI[2]*v + p;
+	FluxG[3] = UI[2]*w;
+	FluxG[4] = (UI[4] + p)*v;
+
+	FluxH[0] = UI[3];
+	FluxH[1] = UI[3]*u;
+	FluxH[2] = UI[3]*v;
+	FluxH[3] = UI[3]*w + p;
+	FluxH[4] = (UI[4] + p)*w;
+}
+
 inline void RoeAverage_x(Real eigen_l[Emax][Emax], Real eigen_r[Emax][Emax], Real const _rho, Real const _u, Real const _v, Real const _w, 
 	Real const _H, Real const D, Real const D1)
 {
