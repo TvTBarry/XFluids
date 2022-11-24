@@ -46,7 +46,6 @@
 #include "fun.h"
 #include "global_class.h"
 
-
 //-------------------------------------------------------------------------------------------------
 //							main
 //-------------------------------------------------------------------------------------------------
@@ -62,8 +61,8 @@ int main()
 	SYCLSolver syclsolver(q);
 	syclsolver.AllocateMemory(q);
 	syclsolver.InitialCondition(q);
-	// //  boundary conditions
-	// // syclsolver.BoundaryCondition(0);
+	//  boundary conditions
+	syclsolver.BoundaryCondition(q, 0);
 	syclsolver.CopyDataFromDevice(q);
 	syclsolver.Output(0);
 

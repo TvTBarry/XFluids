@@ -254,3 +254,57 @@ extern SYCL_EXTERNAL void testkernel(int i, int j, int k, Real* UI, Real* Fx, Re
         return;
 
 }
+
+void FluidBCKernelX(int i, int j, int k, BConditions *BC, Real*  d_UI, int const index_offset, int const mirror_offset, int const index_inner, int const sign)
+{
+    int id = Xmax*Ymax*k + Xmax*j + i;
+
+    #if DIM_Y
+    if(j >= Ymax)
+        return;
+    #endif
+    #if DIM_Z
+    if(k >= Zmax)
+        return;
+    #endif
+
+    // switch(BCs) {
+    //     case Symmetry:
+    //     {
+    //         int offset = 2*(Bwidth_X+mirror_offset)-1;
+    //         int target_id = Xmax*Ymax*k + Xmax*j + (offset-i);
+    //         for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+    //         d_UI[Emax*id+1] = -d_UI[Emax*target_id+1];
+    //     }
+    //     break;
+
+    //     case Periodic:
+    //     {
+    //         int target_id = Xmax*Ymax*k + Xmax*j + (i + sign*X_inner);
+    //         for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+    //     }
+    //     break;
+
+    //     case Inflow:
+    //     break;
+
+    //     case Outflow:
+    //     {
+    //         int target_id = Xmax*Ymax*k + Xmax*j + index_inner;
+    //         for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+    //     }
+    //     break;
+
+    //     case Wall:
+    //     {
+    //         int offset = 2*(Bwidth_X+mirror_offset)-1;
+    //         int target_id = Xmax*Ymax*k + Xmax*j + (offset-i);
+    //         d_UI[Emax*id+0] = d_UI[Emax*target_id+0];
+    //         d_UI[Emax*id+1] = -d_UI[Emax*target_id+1];
+    //         d_UI[Emax*id+2] = -d_UI[Emax*target_id+2];
+    //         d_UI[Emax*id+3] = -d_UI[Emax*target_id+3];
+    //         d_UI[Emax*id+4] = d_UI[Emax*target_id+4];
+    //     }
+    //     break;
+    // }
+}

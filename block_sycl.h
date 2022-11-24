@@ -15,3 +15,6 @@ void InitializeFluidStates(sycl::queue &q, array<int, 3> WG, array<int, 3> WI, M
                             Real* FluxF, Real* FluxG, Real* FluxH, 
                             Real* FluxFw, Real* FluxGw, Real* FluxHw, 
                             Real const dx, Real const dy, Real const dz);
+
+
+void FluidBoundaryCondition(sycl::queue &q, BConditions  *BCs, Real*  d_UI);

@@ -55,6 +55,8 @@ void FluidSYCL::AllocateFluidMemory(sycl::queue &q)
 {
 	d_material_property = static_cast<MaterialProperty *>(malloc_device(sizeof(MaterialProperty), q));
 
+	q.memcpy(d_material_property, &material_property, sizeof(MaterialProperty)).wait();
+
   	d_U  = static_cast<Real *>(malloc_device(cellbytes, q));
   	d_U1 = static_cast<Real *>(malloc_device(cellbytes, q));
   	d_LU = static_cast<Real *>(malloc_device(cellbytes, q));
@@ -97,46 +99,54 @@ void FluidSYCL::AllocateFluidMemory(sycl::queue &q)
 
 void FluidSYCL::InitialU(sycl::queue &q, Real dx, Real dy, Real dz)
 {
-	// auto *U = d_U;
-	FlowData *fdata = &d_fstate;
-	auto *U = d_U;
-	auto *U1 = d_U1;
-	auto *LU = d_LU;
-	auto *FF = d_FluxF;
-	auto *GG = d_FluxG;
-	auto *HH = d_FluxH;
-	auto *Fw = d_wallFluxF;
-	auto *Gw = d_wallFluxG;
-	auto *Hw = d_wallFluxH;
-	auto *eigen = d_eigen_local;
-
-	Real *rho = d_fstate.rho;
-	Real *p = d_fstate.p;
-	Real *H = d_fstate.H;
-	Real *c = d_fstate.c;
-	Real *u = d_fstate.u;
-	Real *v = d_fstate.v;
-	Real *w = d_fstate.w;
-
-	MaterialProperty *mp = d_material_property;
-
 	InitializeFluidStates(q, WGSize, WISize, d_material_property, d_fstate, d_U, d_U1, d_LU, d_FluxF, d_FluxG, d_FluxH, d_wallFluxF, d_wallFluxG, d_wallFluxH, dx, dy, dz);
 
-	// auto local_ndrange = range<3>(WGSize.at(0), WGSize.at(1), WGSize.at(2));	// size of workgroup
-	// auto global_ndrange = range<3>(WISize.at(0), WISize.at(1), WISize.at(2));
+	// // auto *U = d_U;
+	// FlowData *fdata = &d_fstate;
+	// auto *U = d_U;
+	// auto *U1 = d_U1;
+	// auto *LU = d_LU;
+	// auto *FF = d_FluxF;
+	// auto *GG = d_FluxG;
+	// auto *HH = d_FluxH;
+	// auto *Fw = d_wallFluxF;
+	// auto *Gw = d_wallFluxG;
+	// auto *Hw = d_wallFluxH;
+	// auto *eigen = d_eigen_local;
 
-	// q.submit([&](sycl::handler &h){
-	// 	h.parallel_for(sycl::nd_range<3>(global_ndrange, local_ndrange), [=, this](sycl::nd_item<3> index){
-    // 		// 利用get_global_id获得全局指标
-    // 		int i = index.get_global_id(0) + Bwidth_X - 1;
-    // 		int j = index.get_global_id(1) + Bwidth_Y;
-	// 		int k = index.get_global_id(2) + Bwidth_Z;
+	// Real *rho = d_fstate.rho;
+	// Real *p = d_fstate.p;
+	// Real *H = d_fstate.H;
+	// Real *c = d_fstate.c;
+	// Real *u = d_fstate.u;
+	// Real *v = d_fstate.v;
+	// Real *w = d_fstate.w;
 
-	// 		// SYCL不允许在lambda函数里出现结构体成员
-	// 		// InitialStatesKernel(i, j, k, mp, U, U1, LU, FF, GG, HH, Fw, Gw, Hw, u, v, w, rho, p, H, c, dx, dy, dz);
-	// 		// testkernel(i,j,k, d_U, F, Fw, eigen, u,v,w, rho, p, H,c, 0.1, 0.1, 0.1);
-	// 	});
-	// });
+	// MaterialProperty *mp = d_material_property;
+
+	// // auto local_ndrange = range<3>(WGSize.at(0), WGSize.at(1), WGSize.at(2));	// size of workgroup
+	// // auto global_ndrange = range<3>(WISize.at(0), WISize.at(1), WISize.at(2));
+
+	// // q.submit([&](sycl::handler &h){
+	// // 	h.parallel_for(sycl::nd_range<3>(global_ndrange, local_ndrange), [=, this](sycl::nd_item<3> index){
+    // // 		// 利用get_global_id获得全局指标
+    // // 		int i = index.get_global_id(0) + Bwidth_X - 1;
+    // // 		int j = index.get_global_id(1) + Bwidth_Y;
+	// // 		int k = index.get_global_id(2) + Bwidth_Z;
+
+	// // 		// SYCL不允许在lambda函数里出现结构体成员
+	// // 		// InitialStatesKernel(i, j, k, mp, U, U1, LU, FF, GG, HH, Fw, Gw, Hw, u, v, w, rho, p, H, c, dx, dy, dz);
+	// // 		// testkernel(i,j,k, d_U, F, Fw, eigen, u,v,w, rho, p, H,c, 0.1, 0.1, 0.1);
+	// // 	});
+	// // });
+}
+
+void FluidSYCL::BoundaryCondition(sycl::queue &q, BConditions  *BCs, int flag)
+{
+    if (flag == 0)
+        FluidBoundaryCondition(q, BCs, d_U);
+    else
+        FluidBoundaryCondition(q, BCs, d_U1);
 }
 
 void FluidSYCL::test(sycl::queue &q)

@@ -56,7 +56,7 @@ public:
     void InitialU(sycl::queue &q, Real dx, Real dy, Real dz);
     void test(sycl::queue &q);
     void AllocateFluidMemory(sycl::queue &q);
-
+    void BoundaryCondition(sycl::queue &q, BConditions  *BCs, int flag);
 };
 
 class SYCLSolver{
@@ -72,6 +72,8 @@ public:
     Real dx, dy, dz, dl, dt;
     BConditions  BCs[6]; //boundary condition indicators
 
+    BConditions *d_BCs;
+
     FluidSYCL *fluids[NumFluid];
 
     SYCLSolver(sycl::queue &q);
@@ -80,5 +82,6 @@ public:
     void InitialCondition(sycl::queue &q);
     void CopyDataFromDevice(sycl::queue &q);
     void Output(Real Time);
+    void BoundaryCondition(sycl::queue &q, int flag);
 };
 

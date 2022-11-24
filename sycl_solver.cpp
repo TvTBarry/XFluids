@@ -12,10 +12,9 @@ SYCLSolver::SYCLSolver(sycl::queue &q)
 	// Print device name and version
     std::cout << "Device: "<< q.get_device().get_info<sycl::info::device::name>() 
 						<< ",  version = "<<q.get_device().get_info<sycl::info::device::version>() << "\n";
-
 	
 	workgroup_size = {dim_block_x, dim_block_y, dim_block_z};
-	workitem_size = {X_inner+workgroup_size.at(0), Y_inner, Z_inner};
+	workitem_size = {X_inner, Y_inner, Z_inner};
 
 	// --------------------------------------------------------------------------------------
 	// Geo setup, BC
@@ -58,8 +57,18 @@ SYCLSolver::SYCLSolver(sycl::queue &q)
 	// levelset = new LevelsetGPU(dx,dy,dz,dl, dim_blk, dim_grid);
 }
 
+void SYCLSolver::BoundaryCondition(sycl::queue &q, int flag)
+{
+	for(int n=0; n<NumFluid; n++)
+		fluids[n]->BoundaryCondition(q, d_BCs, flag);
+}
+
 void SYCLSolver::AllocateMemory(sycl::queue &q)
 {
+	d_BCs = static_cast<BConditions *>(malloc_device(6*sizeof(BConditions), q));
+
+	q.memcpy(d_BCs, BCs, 6*sizeof(BConditions)).wait();
+
 	//host arrays for each fluid
 	for(int n=0; n<NumFluid; n++)
 		fluids[n]->AllocateFluidMemory(q);
@@ -81,7 +90,6 @@ void SYCLSolver::CopyDataFromDevice(sycl::queue &q)
 {
 	// copy mem from device to host
 	for(int n=0; n<NumFluid; n++){
-		// q.memcpy(h_U, d_U, sizeof(MaterialProperty));
 		q.memcpy(fluids[n]->h_fstate.rho, fluids[n]->d_fstate.rho, bytes);
 		q.memcpy(fluids[n]->h_fstate.p, fluids[n]->d_fstate.p, bytes);
 		q.memcpy(fluids[n]->h_fstate.c, fluids[n]->d_fstate.c, bytes);
