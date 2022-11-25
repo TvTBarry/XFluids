@@ -15,7 +15,7 @@ using namespace std;
 void AllocateMemory(sycl::queue &q);
 
 void ReconstructFluxX(int i, int j, int k, Real* UI, Real* Fx, Real* Fxwall, Real* eigen_local, Real* rho, Real* u, Real* v, 
-                                            Real* w, Real* H, Real dx, Real dy);
+                                            Real* w, Real* H, Real dx);
 
 void RoeAverage_x(Real eigen_l[Emax][Emax], Real eigen_r[Emax][Emax], Real const _rho, Real const _u, Real const _v, Real const _w, 
 	Real const _H, Real const D, Real const D1);
@@ -104,7 +104,7 @@ int main()
 	// 	for(int i=Bwidth_X; i<X_inner+Bwidth_X; i++)
 	// 		for( int j=Bwidth_Y; j<Y_inner+Bwidth_Y; j++)
 	// 			for( int k=Bwidth_Z; k<Z_inner+Bwidth_Z; k++){
-	// 				ReconstructFluxX(i, j, k, h_U, h_FluxF, h_wallFluxF, h_eigen_local, h_fstate.rho, h_fstate.u, h_fstate.v, h_fstate.w, h_fstate.H, 0.01, 0.01);
+	// 				ReconstructFluxX(i, j, k, h_U, h_FluxF, h_wallFluxF, h_eigen_local, h_fstate.rho, h_fstate.u, h_fstate.v, h_fstate.w, h_fstate.H, 0.01);
 	// 			}
 	// }
 
@@ -126,7 +126,7 @@ int main()
     			int j = index.get_global_id(1) + Bwidth_Y;
 				int k = index.get_global_id(2) + Bwidth_Z;
 
-				ReconstructFluxX(i, j, k, d_U, d_FluxF, d_wallFluxF, d_eigen_local, d_fstate.rho, d_fstate.u, d_fstate.v, d_fstate.w, d_fstate.H, 0.01, 0.01);
+				ReconstructFluxX(i, j, k, d_U, d_FluxF, d_wallFluxF, d_eigen_local, d_fstate.rho, d_fstate.u, d_fstate.v, d_fstate.w, d_fstate.H, 0.01);
 			});
 		});
 		}
@@ -154,7 +154,7 @@ int main()
 // add "sycl::nd_item<3> item" for get_global_id
 // add "stream const s" for output
 void ReconstructFluxX(int i, int j, int k, Real* UI, Real* Fx, Real* Fxwall, Real* eigen_local, Real* rho, Real* u, Real* v, 
-                                            Real* w, Real* H, Real dx, Real dy)
+                                            Real* w, Real* H, Real dx)
 {
     // // 利用get_global_id获得全局指标
     // int i = item.get_global_id(0) + Bwidth_X - 1;

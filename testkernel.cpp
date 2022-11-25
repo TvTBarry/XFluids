@@ -28,7 +28,7 @@ using namespace tbb;
 void AllocateMemory(sycl::queue &q, FluidSYCL &fluid);
 
 // void ReconstructFluxX(int i, int j, int k, Real* UI, Real* Fx, Real* Fxwall, Real* eigen_local, Real* rho, Real* u, Real* v, 
-//                                             Real* w, Real* H, Real dx, Real dy);
+//                                             Real* w, Real* H, Real dx);
 
 // void RoeAverage_x(Real eigen_l[Emax][Emax], Real eigen_r[Emax][Emax], Real const _rho, Real const _u, Real const _v, Real const _w, 
 // 	Real const _H, Real const D, Real const D1);
@@ -128,7 +128,7 @@ int main2()
 			for( int i=r.pages().begin(); i!=r.pages().end(); ++i)
 				for( int j=r.rows().begin(); j!=r.rows().end(); ++j)
 					for( int k=r.cols().begin(); k!=r.cols().end(); ++k){
-						// ReconstructFluxX(i, j, k, h_U, h_FluxF, h_wallFluxF, h_eigen_local, h_fstate.rho, h_fstate.u, h_fstate.v, h_fstate.w, h_fstate.H, 0.01, 0.01);
+						// ReconstructFluxX(i, j, k, h_U, h_FluxF, h_wallFluxF, h_eigen_local, h_fstate.rho, h_fstate.u, h_fstate.v, h_fstate.w, h_fstate.H, 0.01);
 					}
 			}, ap);
 	}
@@ -159,7 +159,7 @@ int main2()
 
 				// a[0] = 0.7f;
 
-				// ReconstructFluxX(i, j, k, fluid.d_U, fluid.d_FluxF, fluid.d_wallFluxF, fluid.d_eigen_local, fluid.d_fstate.rho, fluid.d_fstate.u, fluid.d_fstate.v, fluid.d_fstate.w, fluid.d_fstate.H, 0.01, 0.01);
+				// ReconstructFluxX(i, j, k, fluid.d_U, fluid.d_FluxF, fluid.d_wallFluxF, fluid.d_eigen_local, fluid.d_fstate.rho, fluid.d_fstate.u, fluid.d_fstate.v, fluid.d_fstate.w, fluid.d_fstate.H, 0.01);
 			});
 		});
 		}
@@ -190,7 +190,7 @@ int main2()
 // // add "sycl::nd_item<3> item" for get_global_id
 // // add "stream const s" for output
 // void ReconstructFluxX(int i, int j, int k, Real* UI, Real* Fx, Real* Fxwall, Real* eigen_local, Real* rho, Real* u, Real* v, 
-//                                             Real* w, Real* H, Real dx, Real dy)
+//                                             Real* w, Real* H, Real dx)
 // {
 //     // // 利用get_global_id获得全局指标
 //     // int i = item.get_global_id(0) + Bwidth_X - 1;

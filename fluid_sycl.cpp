@@ -74,6 +74,8 @@ void FluidSYCL::AllocateFluidMemory(sycl::queue &q)
 	d_wallFluxF  = static_cast<Real *>(malloc_device(cellbytes, q));
 	d_wallFluxG  = static_cast<Real *>(malloc_device(cellbytes, q));
 	d_wallFluxH  = static_cast<Real *>(malloc_device(cellbytes, q));
+	// shared
+	uvw_c_max  = static_cast<Real *>(malloc_shared(3*sizeof(Real), q));
 
 	cout << "Memory Usage: " << (Real)((long)10*cellbytes + (long)7*bytes)/(Real)(1024*1024*1024)<< " GB\n";
 
@@ -141,6 +143,11 @@ void FluidSYCL::InitialU(sycl::queue &q, Real dx, Real dy, Real dz)
 	// // });
 }
 
+Real FluidSYCL::GetFluidDt(sycl::queue &q)
+{
+	return GetDt(q, d_fstate, uvw_c_max, dx, dy, dz);
+}
+
 void FluidSYCL::BoundaryCondition(sycl::queue &q, BConditions BCs[6], int flag)
 {
     if (flag == 0)
@@ -155,6 +162,21 @@ void FluidSYCL::UpdateFluidStates(sycl::queue &q, int flag)
         UpdateFluidStateFlux(q, d_U, d_fstate, d_FluxF, d_FluxG, d_FluxH, material_property.Gamma);
     else
         UpdateFluidStateFlux(q, d_U1, d_fstate, d_FluxF, d_FluxG, d_FluxH, material_property.Gamma);
+}
+
+void FluidSYCL::UpdateFluidURK3(sycl::queue &q, int flag, Real const dt)
+{
+	UpdateURK3rd(q, d_U, d_U1, d_LU, dt, flag);
+}
+
+void FluidSYCL::ComputeFluidLU(sycl::queue &q, int flag)
+{
+    if (flag == 0)
+        GetLU(q, d_U, d_LU, d_FluxF, d_FluxG, d_FluxH, d_wallFluxF, d_wallFluxG, d_wallFluxH, 
+			material_property.Gamma, material_property.Mtrl_ind, d_fstate, d_eigen_local, dx, dy, dz);
+    else
+        GetLU(q, d_U1, d_LU, d_FluxF, d_FluxG, d_FluxH, d_wallFluxF, d_wallFluxG, d_wallFluxH, 
+			material_property.Gamma, material_property.Mtrl_ind, d_fstate, d_eigen_local, dx, dy, dz);
 }
 
 void FluidSYCL::test(sycl::queue &q)
@@ -176,8 +198,7 @@ void FluidSYCL::test(sycl::queue &q)
     			int j = index.get_global_id(1) + Bwidth_Y;
 				int k = index.get_global_id(2) + Bwidth_Z;
 
-				ReconstructFluxX(i, j, k, U, F, Fw, eigen, fs->rho, fs->u, fs->v, fs->w, fs->H, 0.01, 0.01);
+				ReconstructFluxX(i, j, k, U, F, Fw, eigen, fs->rho, fs->u, fs->v, fs->w, fs->H, 0.01);
 			});
 		});
-
 }

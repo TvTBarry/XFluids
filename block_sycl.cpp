@@ -42,6 +42,53 @@ void InitializeFluidStates(sycl::queue &q, array<int, 3> WG, array<int, 3> WI, M
 	});
 }
 
+Real GetDt(sycl::queue &q, FlowData &fdata, Real* uvw_c_max, Real const dx, Real const dy, Real const dz)
+{
+	Real *rho = fdata.rho;
+	Real *c = fdata.c;
+	Real *u = fdata.u;
+	Real *v = fdata.v;
+	Real *w = fdata.w;
+
+	auto local_ndrange = range<1>(4);	// size of workgroup
+	auto global_ndrange = range<1>(Xmax*Ymax*Zmax);
+    
+	for(int n=0; n<3; n++)
+		uvw_c_max[n] = 0;
+
+    q.submit([&](sycl::handler& h) {
+      	// define reduction objects for sum, min, max reduction
+		// auto reduction_sum = reduction(sum, sycl::plus<>());
+    	auto reduction_max_x = reduction(&(uvw_c_max[0]), sycl::maximum<>());
+		auto reduction_max_y = reduction(&(uvw_c_max[1]), sycl::maximum<>());
+		auto reduction_max_z = reduction(&(uvw_c_max[2]), sycl::maximum<>());
+      
+		h.parallel_for(sycl::nd_range<1>(global_ndrange, local_ndrange), reduction_max_x, reduction_max_y, reduction_max_z, 
+	  	[=](nd_item<1> index, auto& temp_max_x, auto& temp_max_y, auto& temp_max_z)
+		{
+        	auto id = index.get_global_id();
+			// if(id < Xmax*Ymax*Zmax)
+        	temp_max_x.combine(u[id]+c[id]);
+        	temp_max_y.combine(v[id]+c[id]);
+			temp_max_z.combine(w[id]+c[id]);
+      	});
+    }).wait();
+
+    // printf("maxuc = %f, %f, %f \n", h_uvw_c_max[0], h_uvw_c_max[1], h_uvw_c_max[2]);
+
+	Real dtref = 0.0;
+	#if DIM_X
+	dtref += uvw_c_max[0]/dx;
+	#endif
+	#if DIM_Y
+	dtref += uvw_c_max[1]/dy;
+	#endif
+	#if DIM_Z
+	dtref += uvw_c_max[2]/dz;
+	#endif
+	return CFLnumber/dtref;
+}
+
 void UpdateFluidStateFlux(sycl::queue &q, Real*  UI, FlowData &fdata, Real*  FluxF, Real*  FluxG, Real*  FluxH, Real const Gamma)
 {
 	auto local_ndrange = range<3>(dim_block_x, dim_block_y, dim_block_z);	// size of workgroup
@@ -57,15 +104,113 @@ void UpdateFluidStateFlux(sycl::queue &q, Real*  UI, FlowData &fdata, Real*  Flu
 
 	q.submit([&](sycl::handler &h){
 		h.parallel_for(sycl::nd_range<3>(global_ndrange, local_ndrange), [=](sycl::nd_item<3> index){
-    		int i = index.get_global_id(0) + Bwidth_X - 1;
-    		int j = index.get_global_id(1) + Bwidth_Y;
-			int k = index.get_global_id(2) + Bwidth_Z;
+    		int i = index.get_global_id(0);
+    		int j = index.get_global_id(1);
+			int k = index.get_global_id(2);
 
 			UpdateFuidStatesKernel(i, j, k, UI, FluxF, FluxG, FluxH, rho, p, c, H, u, v, w, Gamma);
 		});
 	});
 
 	q.wait();
+}
+
+void UpdateURK3rd(sycl::queue &q, Real* U, Real* U1, Real* LU, Real const dt, int flag)
+{
+	auto local_ndrange = range<3>(dim_block_x, dim_block_y, dim_block_z);	// size of workgroup
+	auto global_ndrange = range<3>(X_inner, Y_inner, Z_inner);
+
+	q.submit([&](sycl::handler &h){
+		h.parallel_for(sycl::nd_range<3>(global_ndrange, local_ndrange), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0) + Bwidth_X;
+    		int j = index.get_global_id(1) + Bwidth_Y;
+			int k = index.get_global_id(2) + Bwidth_Z;
+
+			UpdateURK3rdKernel(i, j, k, U, U1, LU, dt, flag);
+		});
+	});
+
+	q.wait();
+}
+
+void GetLU(sycl::queue &q, Real* UI, Real* LU, Real* FluxF, Real* FluxG, Real* FluxH, 
+            Real* FluxFw, Real* FluxGw, Real* FluxHw, Real const Gamma, int const Mtrl_ind, 
+            FlowData &fdata, Real* eigen_local, Real const dx, Real const dy, Real const dz)
+{
+	Real *rho = fdata.rho;
+	Real *p = fdata.p;
+	Real *H = fdata.H;
+	Real *c = fdata.c;
+	Real *u = fdata.u;
+	Real *v = fdata.v;
+	Real *w = fdata.w;
+
+    bool is_3d = DIM_X*DIM_Y*DIM_Z ? true : false;
+
+	auto local_ndrange = range<3>(dim_block_x, dim_block_y, dim_block_z);
+	auto global_ndrange_max = range<3>(Xmax, Ymax, Zmax);
+	auto global_ndrange_inner = range<3>(X_inner, Y_inner, Z_inner);
+
+	#if DIM_X
+	//proceed at x directiom and get F-flux terms at node wall
+  	auto global_ndrange_x = range<3>(X_inner+local_ndrange[0], Y_inner, Z_inner);
+	
+	auto e = q.submit([&](sycl::handler &h){
+		h.parallel_for(sycl::nd_range<3>(global_ndrange_max, local_ndrange), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0);
+    		int j = index.get_global_id(1);
+			int k = index.get_global_id(2);
+			GetLocalEigen(i, j, k, 1.0, 0.0, 0.0, eigen_local, u, v, w, c);
+		});
+	});
+
+	q.submit([&](sycl::handler &h){
+		h.depends_on(e);
+		h.parallel_for(sycl::nd_range<3>(global_ndrange_x, local_ndrange), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0) + Bwidth_X - 1;
+    		int j = index.get_global_id(1) + Bwidth_Y;
+			int k = index.get_global_id(2) + Bwidth_Z;
+			ReconstructFluxX(i, j, k, UI, FluxF, FluxFw, eigen_local, rho, u, v, w, H, dx);
+		});
+	}).wait();
+	#endif
+
+	// #if DIM_Y
+	// //proceed at y directiom and get G-flux terms at node wall
+    // GetLocalEigen<<<dim_grid_max, dim_blk>>>(0.0, 1.0, 0.0, eigen_local, fdata.u, fdata.v, fdata.w, fdata.c);
+    // CheckCUDAErrors(cudaGetLastError());
+    // // dim3 dim_grid_y(dim_grid.x, dim_grid.y + 1, dim_grid.z);
+    // // ReconstructFluxY<<<dim_grid_y, dim_blk>>>(UI, FluxG, FluxGw, eigen_local, fdata.rho, fdata.u, fdata.v, fdata.w, fdata.H, dy);
+    // blocksize = is_3d ?  dim3(WarpSize,WarpSize/2, 1)  : dim_blk;
+    // gridsize = is_3d ? dim3(X_inner/blocksize.x, Y_inner/blocksize.y+1, Z_inner/blocksize.z) : dim3(dim_grid.x, dim_grid.y + 1, dim_grid.z);
+    // ReconstructFluxY<<<gridsize, blocksize>>>(UI, FluxG, FluxGw, phi, tag_bnd_xt, Rgn_ind, Gamma, Mtrl_ind, eigen_local, fdata.rho, fdata.u, fdata.v, fdata.w, fdata.H, fdata.c, dy);
+	// #endif
+
+	// #if DIM_Z
+	// //proceed at y directiom and get G-flux terms at node wall
+    // GetLocalEigen<<<dim_grid_max, dim_blk>>>(0.0, 0.0, 1.0, eigen_local, fdata.u, fdata.v, fdata.w, fdata.c);
+    // CheckCUDAErrors(cudaGetLastError());
+    // // dim3 dim_grid_z(dim_grid.x, dim_grid.y, dim_grid.z + 1);
+    // // ReconstructFluxZ<<<dim_grid_z, dim_blk>>>(UI, FluxH, FluxHw, eigen_local, fdata.rho, fdata.u, fdata.v, fdata.w, fdata.H, dz);
+    // blocksize = is_3d ?  dim3(WarpSize/2, 1, WarpSize)  : dim_blk;
+    // gridsize = is_3d ? dim3(X_inner/blocksize.x, Y_inner/blocksize.y, Z_inner/blocksize.z+1) : dim3(dim_grid.x, dim_grid.y, dim_grid.z + 1);
+    // ReconstructFluxZ<<<gridsize, blocksize>>>(UI, FluxH, FluxHw, phi, tag_bnd_xt, Rgn_ind, Gamma, eigen_local, fdata.rho, fdata.u, fdata.v, fdata.w, fdata.H, dz);
+	// #endif
+
+	//update LU from cell-face fluxes
+    #if NumFluid == 2
+    // UpdateFluidMPLU<<<dim_grid, dim_blk>>>(LU, FluxFw, FluxGw, FluxHw, phi, tag_bnd_hlf, Rgn_ind, x_swth, y_swth, z_swth, exchange, dx, dy, dz);
+    #else
+	q.submit([&](sycl::handler &h){
+		h.parallel_for(sycl::nd_range<3>(global_ndrange_inner, local_ndrange), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0) + Bwidth_X;
+    		int j = index.get_global_id(1) + Bwidth_Y;
+			int k = index.get_global_id(2) + Bwidth_Z;
+
+			UpdateFluidLU(i, j, k, LU, FluxFw, FluxGw, FluxHw, dx, dy, dz);
+		});
+	}).wait();
+    #endif
 }
 
 void FluidBoundaryCondition(sycl::queue &q, BConditions BCs[6], Real*  d_UI)
