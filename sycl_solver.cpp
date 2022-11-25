@@ -68,19 +68,8 @@ void SYCLSolver::Evolution(sycl::queue &q)
 	// RK3
 	while(physicalTime < EndTime) {
 
-		#if NumFluid == 2
-		// for(int n=0; n<NumFluid; n++)
-		// 	fluids[n]->UpdateFluidStatesMP(0,levelset);
-
-		// if(Iteration > 0){
-		// 	Extend();
-		// 	RenewU(0);
-		// }
-		// Interaction();
-		#endif
-
 		//get minmum dt
-		dt = ComputeTimeStep(q);//5.0e-5;//0.001;//
+		dt = 0.001;//ComputeTimeStep(q);//5.0e-5;//
 
 		if(physicalTime + dt > EndTime) dt = EndTime - physicalTime;
 		
@@ -94,13 +83,15 @@ void SYCLSolver::Evolution(sycl::queue &q)
 		// if(Iteration%10 == 0)
 	        cout<<"N="<<std::setw(6)<<Iteration<<" physicalTime: "<<std::setw(10)<<std::setprecision(8)<<physicalTime<<"	dt: "<<dt<<"\n";
 
-		if(Iteration%100 == 0)
+		if(Iteration%100 == 0){
+			CopyDataFromDevice(q);
 			Output(physicalTime);
+		}
 	}
 
 	std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
 	duration = std::chrono::duration<float, std::milli>(end_time - start_time).count();
-	printf("CPU runtime : %12.8f s\n", duration/1000.0f);
+	printf("GPU runtime : %12.8f s\n", duration/1000.0f);
 	
     Output(physicalTime);
 }

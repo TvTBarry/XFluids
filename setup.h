@@ -97,7 +97,7 @@ const Real BandforLevelset	= 6.0L;		//half-width of level set narrow band
 //--- Courant Friedrichs Lewy Number ------------------------
 const Real CFLnumber =	0.6;
 
-const Real EndTime = 0.024;//0.2;
+const Real EndTime = 0.2;
 
 constexpr Real dt = 0.002;
 constexpr Real dx = 0.01;
