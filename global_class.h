@@ -54,7 +54,6 @@ public:
 
     void initialize(int n);
     void InitialU(sycl::queue &q, Real dx, Real dy, Real dz);
-    void test(sycl::queue &q);
     void AllocateFluidMemory(sycl::queue &q);
     void BoundaryCondition(sycl::queue &q, BConditions  BCs[6], int flag);
     void UpdateFluidStates(sycl::queue &q, int flag);
@@ -66,9 +65,6 @@ public:
 class SYCLSolver{
 
 public:
-
-    // range<3> local_range = range<3>(dim_block_x, dim_block_y, dim_block_z);
-    // range<3> global_range = range<3>(X_inner+local_range[0], Y_inner, Z_inner);
 
     std::array<int, 3> workgroup_size, workitem_size;
 

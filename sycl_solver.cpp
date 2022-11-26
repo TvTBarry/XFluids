@@ -88,7 +88,8 @@ void SYCLSolver::Evolution(sycl::queue &q)
 			Output(physicalTime);
 		}
 
-		// return;
+		if(Iteration == 10)
+		break;
 	}
 
 	std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();

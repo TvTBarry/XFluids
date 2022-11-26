@@ -67,7 +67,7 @@ int main()
 	syclsolver.UpdateStates(q, 0);
 	// copy data to host
 	syclsolver.CopyDataFromDevice(q);
-	syclsolver.Output(0);
+	// syclsolver.Output(0);
 	// time marching by SYCL device
 	syclsolver.Evolution(q);
 	return 0;
