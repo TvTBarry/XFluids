@@ -11,10 +11,6 @@ void InitializeFluidStates(sycl::queue &q, array<int, 3> WG, array<int, 3> WI, M
 	// auto local_ndrange = range<3>(WGSize.at(0), WGSize.at(1), WGSize.at(2));	// size of workgroup
 	// auto global_ndrange = range<3>(WISize.at(0), WISize.at(1), WISize.at(2));
 
-    // dim3 dim_grid_max(dim_grid.x + DIM_X, dim_grid.y + DIM_Y, dim_grid.z + DIM_Z);
-    // InitialStatesKernel<<<dim_grid_max, dim_blk>>>(material, U, U1, LU, CnsrvU, CnsrvU1, FluxF, FluxG, FluxH, FluxFw, FluxGw, FluxHw, 
-    //                                                                                 fdata.u, fdata.v, fdata.w, fdata.rho, fdata.p, fdata.H, fdata.c, vof, dx, dy, dz);
-
 	Real *rho = fdata.rho;
 	Real *p = fdata.p;
 	Real *H = fdata.H;
@@ -27,9 +23,9 @@ void InitializeFluidStates(sycl::queue &q, array<int, 3> WG, array<int, 3> WI, M
 		// auto out = sycl::stream(1024, 256, h);
 		h.parallel_for(sycl::nd_range<3>(global_ndrange, local_ndrange), [=](sycl::nd_item<3> index){
     		// 利用get_global_id获得全局指标
-    		int i = index.get_global_id(0) + Bwidth_X - 1;
-    		int j = index.get_global_id(1) + Bwidth_Y;
-			int k = index.get_global_id(2) + Bwidth_Z;
+    		int i = index.get_global_id(0);
+    		int j = index.get_global_id(1);
+			int k = index.get_global_id(2);
 
 			// int ii = index.get_group(0)*index.get_local_range(0) + index.get_local_id(0) + Bwidth_X - 1;
 			// int jj = index.get_group(1)*index.get_local_range(1) + index.get_local_id(1) + Bwidth_Y;
@@ -228,12 +224,13 @@ void FluidBoundaryCondition(sycl::queue &q, BConditions BCs[6], Real*  d_UI)
 
 	q.submit([&](sycl::handler &h){
 		h.parallel_for(sycl::nd_range<3>(global_ndrange_x, local_ndrange_x), [=](sycl::nd_item<3> index){
-    		int i = index.get_global_id(0) + Bwidth_X - 1;
-    		int j = index.get_global_id(1) + Bwidth_Y;
-			int k = index.get_global_id(2) + Bwidth_Z;
+    		int i0 = index.get_global_id(0) + 0;
+			int i1 = index.get_global_id(0) + Xmax-Bwidth_X;
+    		int j = index.get_global_id(1);
+			int k = index.get_global_id(2);
 
-			FluidBCKernelX(i, j, k, BC0, d_UI, 0, 0, Bwidth_X, 1);
-			FluidBCKernelX(i, j, k, BC1, d_UI, Xmax-Bwidth_X, X_inner, Xmax-Bwidth_X-1, -1);
+			FluidBCKernelX(i0, j, k, BC0, d_UI, 0, 0, Bwidth_X, 1);
+			FluidBCKernelX(i1, j, k, BC1, d_UI, Xmax-Bwidth_X, X_inner, Xmax-Bwidth_X-1, -1);
 		});
 	});
     #endif

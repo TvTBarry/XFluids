@@ -69,7 +69,7 @@ void SYCLSolver::Evolution(sycl::queue &q)
 	while(physicalTime < EndTime) {
 
 		//get minmum dt
-		dt = 0.001;//ComputeTimeStep(q);//5.0e-5;//
+		dt = ComputeTimeStep(q);//5.0e-5;//0.001;//
 
 		if(physicalTime + dt > EndTime) dt = EndTime - physicalTime;
 		
@@ -87,12 +87,15 @@ void SYCLSolver::Evolution(sycl::queue &q)
 			CopyDataFromDevice(q);
 			Output(physicalTime);
 		}
+
+		// return;
 	}
 
 	std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
 	duration = std::chrono::duration<float, std::milli>(end_time - start_time).count();
 	printf("GPU runtime : %12.8f s\n", duration/1000.0f);
 	
+	CopyDataFromDevice(q);
     Output(physicalTime);
 }
 

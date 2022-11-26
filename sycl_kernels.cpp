@@ -11,18 +11,18 @@ void InitialStatesKernel(int i, int j, int k, MaterialProperty* material, Real* 
 {
     int id = Xmax*Ymax*k + Xmax*j + i;
 
-    #if DIM_X
-    if(i >= Xmax)
-        return;
-    #endif
-    #if DIM_Y
-    if(j >= Ymax)
-        return;
-    #endif
-    #if DIM_Z
-    if(k >= Zmax)
-        return;
-    #endif
+    // #if DIM_X
+    // if(i >= Xmax)
+    //     return;
+    // #endif
+    // #if DIM_Y
+    // if(j >= Ymax)
+    //     return;
+    // #endif
+    // #if DIM_Z
+    // if(k >= Zmax)
+    //     return;
+    // #endif
 
 	#if USE_DP
 	Real one_float = 1.0;
