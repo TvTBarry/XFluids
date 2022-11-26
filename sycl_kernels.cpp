@@ -371,7 +371,7 @@ void UpdateURK3rdKernel(int i, int j, int k, Real* U, Real* U1, Real* LU, Real c
     }
 }
 
-void FluidBCKernelX(int i, int j, int k, BConditions  const BC, Real*  d_UI, int const index_offset, int const mirror_offset, int const index_inner, int const sign)
+void FluidBCKernelX(int i, int j, int k, BConditions  const BC, Real* d_UI, int const mirror_offset, int const index_inner, int const sign)
 {
     int id = Xmax*Ymax*k + Xmax*j + i;
 
@@ -415,6 +415,114 @@ void FluidBCKernelX(int i, int j, int k, BConditions  const BC, Real*  d_UI, int
         {
             int offset = 2*(Bwidth_X+mirror_offset)-1;
             int target_id = Xmax*Ymax*k + Xmax*j + (offset-i);
+            d_UI[Emax*id+0] = d_UI[Emax*target_id+0];
+            d_UI[Emax*id+1] = -d_UI[Emax*target_id+1];
+            d_UI[Emax*id+2] = -d_UI[Emax*target_id+2];
+            d_UI[Emax*id+3] = -d_UI[Emax*target_id+3];
+            d_UI[Emax*id+4] = d_UI[Emax*target_id+4];
+        }
+        break;
+    }
+}
+
+void FluidBCKernelY(int i, int j, int k, BConditions const BC, Real* d_UI, int const mirror_offset, int const index_inner, int const sign)
+{
+    int id = Xmax*Ymax*k + Xmax*j + i;
+
+    #if DIM_X
+    if(i >= Xmax)
+        return;
+    #endif
+    #if DIM_Z
+    if(k >= Zmax)
+        return;
+    #endif
+
+    switch(BC) {
+        case Symmetry:
+        {
+            int offset = 2*(Bwidth_Y+mirror_offset)-1;
+            int target_id = Xmax*Ymax*k + Xmax*(offset-j) + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+            d_UI[Emax*id+2] = -d_UI[Emax*target_id+2];
+        }
+        break;
+
+        case Periodic:
+        {
+            int target_id = Xmax*Ymax*k + Xmax*(j + sign*Y_inner) + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+        }
+        break;
+
+        case Inflow:
+        break;
+
+        case Outflow:
+        {
+            int target_id = Xmax*Ymax*k + Xmax*index_inner + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+        }
+        break;
+
+        case Wall:
+        {
+            int offset = 2*(Bwidth_Y+mirror_offset)-1;
+            int target_id = Xmax*Ymax*k + Xmax*(offset-j) + i;
+            d_UI[Emax*id+0] = d_UI[Emax*target_id+0];
+            d_UI[Emax*id+1] = -d_UI[Emax*target_id+1];
+            d_UI[Emax*id+2] = -d_UI[Emax*target_id+2];
+            d_UI[Emax*id+3] = -d_UI[Emax*target_id+3];
+            d_UI[Emax*id+4] = d_UI[Emax*target_id+4];
+        }
+        break;
+    }
+}
+
+void FluidBCKernelZ(int i, int j, int k, BConditions const BC, Real* d_UI, int const  mirror_offset, int const index_inner, int const sign)
+{
+    int id = Xmax*Ymax*k + Xmax*j + i;
+
+    #if DIM_X
+    if(i >= Xmax)
+        return;
+    #endif
+    #if DIM_Y
+    if(j >= Ymax)
+        return;
+    #endif
+
+    switch(BC) {
+        case Symmetry:
+        {
+            int offset = 2*(Bwidth_Z+mirror_offset)-1;
+            int target_id = Xmax*Ymax*(offset-k) + Xmax*j + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+            d_UI[Emax*id+3] = -d_UI[Emax*target_id+3];
+        }
+        break;
+
+        case Periodic:
+        {
+            int target_id = Xmax*Ymax*(k + sign*Z_inner) + Xmax*j + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+        }
+        break;
+
+        case Inflow:
+        break;
+
+        case Outflow:
+        {
+            int target_id = Xmax*Ymax*index_inner + Xmax*j + i;
+            for(int n=0; n<Emax; n++)	d_UI[Emax*id+n] = d_UI[Emax*target_id+n];
+        }
+        break;
+
+        case Wall:
+        {
+            int offset = 2*(Bwidth_Z+mirror_offset)-1;
+            int target_id = Xmax*Ymax*(k-offset) + Xmax*j + i;
             d_UI[Emax*id+0] = d_UI[Emax*target_id+0];
             d_UI[Emax*id+1] = -d_UI[Emax*target_id+1];
             d_UI[Emax*id+2] = -d_UI[Emax*target_id+2];

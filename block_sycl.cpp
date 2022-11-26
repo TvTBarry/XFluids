@@ -70,8 +70,6 @@ Real GetDt(sycl::queue &q, FlowData &fdata, Real* uvw_c_max, Real const dx, Real
       	});
     }).wait();
 
-    // printf("maxuc = %f, %f, %f \n", h_uvw_c_max[0], h_uvw_c_max[1], h_uvw_c_max[2]);
-
 	Real dtref = 0.0;
 	#if DIM_X
 	dtref += uvw_c_max[0]/dx;
@@ -211,11 +209,6 @@ void GetLU(sycl::queue &q, Real* UI, Real* LU, Real* FluxF, Real* FluxG, Real* F
 
 void FluidBoundaryCondition(sycl::queue &q, BConditions BCs[6], Real*  d_UI)
 {
-	// //x direction
-    // constexpr int dim_block_x = DIM_X ? WarpSize : 1;
-    // constexpr int dim_block_y = DIM_Y ? WarpSize : 1;
-	// constexpr int dim_block_z = 1;//DIM_Z ? WarpSize : 1;
-
     #if DIM_X
 	auto local_ndrange_x = range<3>(Bwidth_X, dim_block_y, dim_block_z);	// size of workgroup
 	auto global_ndrange_x = range<3>(Bwidth_X, Ymax, Zmax);
@@ -229,23 +222,47 @@ void FluidBoundaryCondition(sycl::queue &q, BConditions BCs[6], Real*  d_UI)
     		int j = index.get_global_id(1);
 			int k = index.get_global_id(2);
 
-			FluidBCKernelX(i0, j, k, BC0, d_UI, 0, 0, Bwidth_X, 1);
-			FluidBCKernelX(i1, j, k, BC1, d_UI, Xmax-Bwidth_X, X_inner, Xmax-Bwidth_X-1, -1);
+			FluidBCKernelX(i0, j, k, BC0, d_UI, 0, Bwidth_X, 1);
+			FluidBCKernelX(i1, j, k, BC1, d_UI, X_inner, Xmax-Bwidth_X-1, -1);
 		});
 	});
     #endif
 
-    // #if DIM_Y
-	// dim3 dim_blk_y(dim_block_x, Bwidth_Y, dim_block_z);
-    // dim3 dim_grid_y(X_inner/dim_block_x + DIM_X, 1, Z_inner/dim_block_z + DIM_Z);
-    // FluidBCKernelY<<<dim_grid_y, dim_blk_y>>>(BCs[2], d_UI, 0, 0, Bwidth_Y, 1);
-    // FluidBCKernelY<<<dim_grid_y, dim_blk_y>>>(BCs[3], d_UI, Ymax-Bwidth_Y, Y_inner, Ymax-Bwidth_Y-1, -1);
-    // #endif
+    #if DIM_Y
+	auto local_ndrange_y = range<3>(dim_block_x, Bwidth_Y, dim_block_z);	// size of workgroup
+	auto global_ndrange_y = range<3>(Xmax, Bwidth_Y, Zmax);
 
-    // #if DIM_Z
-	// dim3 dim_blk_z(1, dim_block_y, Bwidth_Z);
-    // dim3 dim_grid_z(X_inner/1 + DIM_X, Y_inner/dim_block_y + DIM_Y, 1);
-    // FluidBCKernelZ<<<dim_grid_z, dim_blk_z>>>(BCs[4], d_UI, 0, 0, Bwidth_Z, 1);
-    // FluidBCKernelZ<<<dim_grid_z, dim_blk_z>>>(BCs[5], d_UI, Zmax-Bwidth_Z, Z_inner, Zmax-Bwidth_Z-1, -1);
-    // #endif
+	BConditions BC2 = BCs[2], BC3 = BCs[3];
+
+	q.submit([&](sycl::handler &h){
+		h.parallel_for(sycl::nd_range<3>(global_ndrange_y, local_ndrange_y), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0);
+			int j0 = index.get_global_id(1) + 0;
+    		int j1 = index.get_global_id(1) + Ymax-Bwidth_Y;
+			int k = index.get_global_id(2);
+
+    		FluidBCKernelY(i, j0, k, BC2, d_UI, 0, Bwidth_Y, 1);
+    		FluidBCKernelY(i, j1, k, BC3, d_UI, Y_inner, Ymax-Bwidth_Y-1, -1);
+		});
+	});
+    #endif
+
+    #if DIM_Z
+	auto local_ndrange_z = range<3>(dim_block_x, dim_block_y, Bwidth_Z);	// size of workgroup
+	auto global_ndrange_z = range<3>(Xmax, Ymax, Bwidth_Z);
+
+	BConditions BC4 = BCs[4], BC5 = BCs[5];
+
+	q.submit([&](sycl::handler &h){
+		h.parallel_for(sycl::nd_range<3>(global_ndrange_z, local_ndrange_z), [=](sycl::nd_item<3> index){
+    		int i = index.get_global_id(0);
+			int j = index.get_global_id(1);
+    		int k0 = index.get_global_id(2) + 0;
+			int k1 = index.get_global_id(2) + Zmax-Bwidth_Z;
+
+    		FluidBCKernelZ(i, j, k0, BC4, d_UI, 0, Bwidth_Z, 1);
+    		FluidBCKernelZ(i, j, k1, BC5, d_UI, Z_inner, Zmax-Bwidth_Z-1, -1);
+		});
+	});
+    #endif
 }

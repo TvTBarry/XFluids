@@ -23,7 +23,14 @@ void testkernel(int i, int j, int k, Real* UI, Real* Fx, Real* Fxwall, Real* eig
                                                     Real*  p, Real*  H, Real*  c, Real const dx, Real const dy, Real const dz);
 
 extern SYCL_EXTERNAL 
-void FluidBCKernelX(int i, int j, int k, BConditions const BC, Real*  d_UI, int const index_offset, int const mirror_offset, int const index_inner, int const sign);
+void FluidBCKernelX(int i, int j, int k, BConditions const BC, Real* d_UI, int const mirror_offset, int const index_inner, int const sign);
+
+extern SYCL_EXTERNAL 
+void FluidBCKernelY(int i, int j, int k, BConditions const BC, Real* d_UI, int const mirror_offset, int const index_inner, int const sign);
+
+extern SYCL_EXTERNAL 
+void FluidBCKernelZ(int i, int j, int k, BConditions const BC, Real* d_UI, int const  mirror_offset, int const index_inner, int const sign);
+
 
 extern SYCL_EXTERNAL 
 void UpdateFuidStatesKernel(int i, int j, int k, Real*  UI, Real*  FluxF, Real*  FluxG, Real*  FluxH, Real*  rho, Real*  p, Real*  c, Real*  H, Real*  u, Real*  v, Real*  w, Real const Gamma);
