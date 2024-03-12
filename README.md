@@ -1,11 +1,28 @@
 # XFLUIDS: A SYCL-based unified cross-architecture heterogeneous simulation solver for compressible reacting flows
 
-XFLUIDS is a parallelized SYCL-C++ solver for multi-component reacting flow dynamics, and simple fluids without component is supported, too. It allows for large-scale high-resolution sharp-interface modeling of both incompressible and compressible flows including MPI and GPU parallelism.
+XFLUIDS is a parallelized SYCL C++ solver for large-scale high-resolution simulations of compressible multi-component reacting flows. It is developed by [Prof. Shucheng Pan&#39;s] (https://teacher.nwpu.edu.cn/span.html) group at the School of Aeronautics, Northwestern Polytechincal University.
 
-This code is developed by Mr.Li(Jiuxiaoyun by commit name) from [Prof. S Pan&#39;s](https://teacher.nwpu.edu.cn/span.html) group at the School of Aeronautics, Northwestern Polytechincal University. To learn more about implementation details on numerical methods and GPU parallelism optimization technology provided by XFLUIDS, feel free to read [our paper](https://arxiv.org/abs/2403.05910)
+main developers:
 
-CONTACT DEVELOPER:
-ljl66623@mail.nwpu.edu.cn, Xi'an, China
+- Jinlong Li (ljl66623@mail.nwpu.edu.cn)
+- Shucheng Pan (shucheng.pan@nwpu.edu.cn)
+
+other contributors: 
+- Yixuan Lian, Renfei Zhang
+
+## References
+If you use XFLUIDS for academic aplications, please cite our paper: 
+
+Jinlong Li, Shucheng Pan (2024). XFLUIDS: A SYCL-based unified cross-architecture heterogeneous simulation solver for compressible reacting flows. arXiv:2403.05910. 
+(https://arxiv.org/abs/2403.05910)
+
+
+## Features
+- Support CPU, GPU (intergal & descrte), and FPGA without porting code
+- General for multi-vendor devices (Intel/NVIDIA/AMD/Hygon ... )
+- High portability, productivity, and performace
+- GPU-aware MPI
+- Highly optimized kernels & device functions for multicomponent flows and chemical reaction 
 
 ## 1. Dependencies before cmake
 
@@ -168,7 +185,18 @@ ljl66623@mail.nwpu.edu.cn, Xi'an, China
 - use `paraview` to open `*.pvti` files for MPI visualization(1D visualization is not allowed, using paraview for 2/3D visualization is recommended);
 
 ## Cite XFLUIDS
+```
+@misc{li2024xfluids,
+      title={XFLUIDS: A SYCL-based unified cross-architecture heterogeneous simulation solver for compressible reacting flows}, 
+      author={Jinlong Li and Shucheng Pan},
+      year={2024},
+      eprint={2403.05910},
+      archivePrefix={arXiv}
+}
+```
 
-  arXiv:2403.05910 [physics.comp-ph](or arXiv:2403.05910v1 [physics.comp-ph] for this version)
+## Acknowledgments
 
-periodical pubilshed version is comming soon....
+XFLUIDS has received financial support from the following fundings:
+- The Guanghe foundation (Grant No. ghfund202302016412)
+- The National Natural Science Foundation of China (Grant No. 11902271)
